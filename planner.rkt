@@ -64,7 +64,6 @@ def make_poi(position, interest ):
     
     
 def distance_squ(pos1:RawPos?, pos2: RawPos?):
-    
     return ((pos1[0]-pos2[0])*(pos1[0]-pos2[0])) + ((pos1[1]-pos2[1])*(pos1[1]-pos2[1])) 
 
 interface TRIP_PLANNER:
@@ -113,19 +112,16 @@ class TripPlanner (TRIP_PLANNER):
         self.num_to_pos = HashTable((2 * roads.len()), make_sbox_hash())
         self.tracker = 0
         
-        
         for i in roads:
             let pos1 = [i[0], i[1]]
             let pos2 = [i[2], i[3]]
-            
             
             if not self.dict_pos.mem?(pos1):
                 self.dict_pos.put(pos1,None)
                 self.pos_to_num.put(pos1, self.tracker)
                 self.num_to_pos.put(self.tracker, pos1)
                 self.tracker = self.tracker + 1
-                
-                
+                 
             if not self.dict_pos.mem?(pos2):
                 self.dict_pos.put(pos2, None)
                 self.pos_to_num.put(pos2, self.tracker)
@@ -135,59 +131,40 @@ class TripPlanner (TRIP_PLANNER):
             self.graph.set_edge(self.pos_to_num.get(pos1), self.pos_to_num.get(pos2), distance_squ(pos1,pos2))
         
         for i in pinterests:
-             let pos = [i[0], i[1]]
-             
-             let b = self.dict_pos.get(pos)
-             
-             b = cons(i, b)
-             
+             let pos = [i[0], i[1]]   
+             let b = self.dict_pos.get(pos)     
+             b = cons(i, b)             
              self.dict_pos.put(pos, b)
              
-             
-                    
-         
-    
+                
     def find_name(self,dst_name):
         for i in self.list_poi:
-            if i[3] == dst_name:
-                
+            if i[3] == dst_name:           
                 return [i[0], i[1]]
-               
-        
-                
+                         
                 
     def locate_all(self, dst_cat:  Cat? )->ListC[RawPos?]:
-        
+    
         let ans = None
         let detector = [True; self.tracker]
         
-        
-        
-        for i in self.list_poi:
-            
-            let a = [i[0], i[1]]
-            
-            
+        for i in self.list_poi:            
+            let a = [i[0], i[1]]           
             #println(self.pos_to_num.get(a))
             
-            if ( detector[self.pos_to_num.get(a)]) and (i[2] == dst_cat):
-                
+            if ( detector[self.pos_to_num.get(a)]) and (i[2] == dst_cat):            
                 #print("was here")
-                detector[self.pos_to_num.get(a)] = False
-                
+                detector[self.pos_to_num.get(a)] = False        
                 ans = cons(a,ans)
             
         return ans
-        
+       
+       
     def dts(self, a):
         let distance = [inf; (self.tracker+1)]
-    
         let pred = [None; (self.tracker+1)]
-    
         pred[a] = a
-    
         let done = [False; (self.tracker+1)]
-    
         distance[a] = 0
         
         def helper_comp(a, b):
@@ -197,110 +174,66 @@ class TripPlanner (TRIP_PLANNER):
                 return False
            
         let todo = BinHeap(10, helper_comp)
-    
         todo.insert(a)
     
-    
         while (todo.len() != 0):
-        
-        
             let tracker = todo.find_min()
-        
             todo.remove_min()
-        
-        
-        
-            if not done[tracker]:
-            
-            
-            
-                done[tracker] = True
-            
-            
+           
+            if not done[tracker]:      
+                done[tracker] = True 
                 let mya = self.graph.get_adjacent(tracker)
             
                 while mya != None:
-            
-                
-                    if (distance[tracker] + self.graph.get_edge(tracker, mya.data)) < distance[mya.data]:
-                    
-                    
-                        distance[mya.data] = distance[tracker] + self.graph.get_edge(tracker, mya.data)
-                    
-                    
+                    if (distance[tracker] + self.graph.get_edge(tracker, mya.data)) < distance[mya.data]:                   
+                        distance[mya.data] = distance[tracker] + self.graph.get_edge(tracker, mya.data)            
                         pred[mya.data] = tracker
-                    
-                    
-                    todo.insert(mya.data)
-                
+       
+                    todo.insert(mya.data) 
                     mya = mya.next
                  
         println(pred)
         println(distance)
-        
-       
-             
+      
         return [distance,pred]
-       
-        
-        
-    
-        
-        
-    
     
         
     def plan_route(self, src_lat:  Lat?, src_lon:  Lon?,dst_name: Name?)->ListC[RawPos?]:
         let target = self.find_name(dst_name)
         if target == None: return None
         let target_num = self.pos_to_num.get(target)
-        
-        
+         
         let preds = self.dts(self.pos_to_num.get([src_lat, src_lon]))
         preds = preds[1]
-        
-        
+       
         if preds[target_num] == None:
             return None
         
         def findpath(vect, a, b):
             let tracker = vect[b]
             let s = ListQueue()
-            
-            
+             
             if tracker == None: return []
-            
-            
+  
             s.enqueue( b)
     
-            while (tracker != a) :
-               
+            while (tracker != a) :       
                 s.enqueue(tracker)
                 tracker = vect[tracker]
-                
-        
+                  
             let ans = None
-            
-            
-    
+  
             while not s.empty?():
-                
-                
-        
                 ans = cons(self.num_to_pos.get(s.dequeue()), ans)
-        
-            
             
             if self.num_to_pos.get(a) !=  ans.data:
-                ans = cons( self.num_to_pos.get(a), ans)
-                
+                ans = cons( self.num_to_pos.get(a), ans)      
                 
             return ans
         
         return findpath(preds,self.pos_to_num.get([src_lat, src_lon]), target_num)  
         
-        
-            
+              
     def find_nearby(self, src_lat:  Lat?,src_lon:  Lon?, dst_cat:  Cat?,n: nat?) -> ListC[RawPOI?]:
         #let start = self.pos_to_num.get([src_lat, src_lon]).poi
         
@@ -316,62 +249,37 @@ class TripPlanner (TRIP_PLANNER):
                 return True
             else: 
                 return False
-                
-                
+                      
         heap_sort(pos, compare)
         let num = 0
         let i = 0
         let ans = None
         
-        while (num < n) and (i < distances.len()-1):
-            
-            let cat_name = (self.dict_pos.get(self.num_to_pos.get(pos[i])))
-            
+        while (num < n) and (i < distances.len()-1):     
+            let cat_name = (self.dict_pos.get(self.num_to_pos.get(pos[i])))   
             let b = cat_name
+            
             while (b != None) and (num < n):
                 if b.data[2] == dst_cat:
                     ans = cons(b.data, ans)
-                    
-                    num = num + 1
-                    
-                    
+                    num = num + 1   
                 b = b.next
-
                 
-            i = i + 1
-            
-            
+            i = i + 1 
             
         return ans
         
-        
-        
-        
-  
-
-                        
-                        
+                       
                         
 
 def example_from_handout():
     return TripPlanner([[0,0, 0, 1],[0,1, 0,2],[0,0, 1,0], [1,0, 1,1], [0,1, 1,1], [0,2, 1,2],[1,1, 1,2], [1,2, 1, 3], [1,3, -0.2, 3.3]],
                        [[0,0, "food", "Sandwiches"], [0,1, "food", "Pasta"],[1,1, "bank", "Local Credit Union",], [1, 3,"bar", "Bar None"], [1, 3,"bar", "H Bar"], [-0.2, 3.3,"food", "Burritos"]])
-                       
-              
 
-
-
-     
-     
 def new_example():
     return TripPlanner([[0,0, 0, 1],[0,1, 0,2],[0,0, 1,0], [1,0, 1,1], [0,1, 1,1], [0,2, 1,2],[1,1, 1,2], [1,3, -0.2, 3.3]],
                        [[0,0, "food", "Sandwiches"], [0,1, "food", "Pasta"],[1,1, "bank", "Local Credit Union",], [1, 3,"bar", "Bar None"], [1, 3,"bar", "H Bar"], [-0.2, 3.3,"food", "Burritos"]])     
      
-     
-     
-
-     
-
 let t = TripPlanner([[0,0, 0, 1],[0,1, 0,2],[0,0, 1,0], [1,0, 1,1], [0,1, 1,1], [0,2, 1,2],[1,1, 1,2], [1,2,1,3], [1,3, -0.2, 3.3]],
                        [[0,0, "food", "sandwiches"], [0,1, "food", "pasta"],[1,3,"bar","bar none"], [1,3,"bar", "h bar"],[1,1, "bank", "local credit union",], [1, 3,"bar", "Bar None"], [1, 3,"bar", "H Bar"], [-0.2, 3.3,"food", "Bburritos"]])     
               
